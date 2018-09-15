@@ -1,14 +1,19 @@
 import helmet from 'helmet';
 
 let trusted = [
-  "'self'"
+  "'self'",
+  'https://search.freecodecamp.org',
+  'https://www.freecodecamp.rocks',
+  'https://api.freecodecamp.rocks',
+  'https://' + process.env.AUTH0_DOMAIN
 ];
+
+const host = process.env.HOST || 'localhost';
+const port = process.env.SYNC_PORT || '3000';
 
 if (process.env.NODE_ENV !== 'production') {
   trusted = trusted.concat([
-    'ws://localhost:3001',
-    'http://localhost:2999',
-    'ws://localhost:2999'
+    `ws://${host}:${port}`
   ]);
 }
 
@@ -16,14 +21,23 @@ export default function csp() {
   return helmet.contentSecurityPolicy({
     directives: {
       defaultSrc: trusted.concat([
-        '*.optimizely.com',
         'https://*.cloudflare.com',
         '*.cloudflare.com'
+      ]),
+      connectSrc: trusted.concat([
+        'https://glitch.com',
+        'https://*.glitch.com',
+        'https://*.glitch.me',
+        'https://*.cloudflare.com',
+        'https://*.algolia.net'
       ]),
       scriptSrc: [
         "'unsafe-eval'",
         "'unsafe-inline'",
         '*.google-analytics.com',
+        'https://www.googletagmanager.com',
+        'https://www.googleadservices.com',
+        'https://googleads.g.doubleclick.net',
         '*.gstatic.com',
         'https://*.cloudflare.com',
         '*.cloudflare.com',
@@ -44,7 +58,8 @@ export default function csp() {
         '*.bootstrapcdn.com',
         'https://*.bootstrapcdn.com',
         '*.cloudflare.com',
-        'https://*.cloudflare.com'
+        'https://*.cloudflare.com',
+        'https://use.fontawesome.com'
       ].concat(trusted),
       fontSrc: [
         '*.cloudflare.com',
@@ -52,7 +67,8 @@ export default function csp() {
         '*.bootstrapcdn.com',
         '*.googleapis.com',
         '*.gstatic.com',
-        'https://*.bootstrapcdn.com'
+        'https://*.bootstrapcdn.com',
+        'https://use.fontawesome.com'
       ].concat(trusted),
       imgSrc: [
         // allow all input since we have user submitted images for

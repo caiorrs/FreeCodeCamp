@@ -1,15 +1,19 @@
-var webpack = require('webpack');
-var path = require('path');
-var ManifestPlugin = require('webpack-manifest-plugin');
-var ChunkManifestPlugin = require('chunk-manifest-webpack-plugin');
+const webpack = require('webpack');
+const path = require('path');
+const ManifestPlugin = require('webpack-manifest-plugin');
+const ChunkManifestPlugin = require('chunk-manifest-webpack-plugin');
+const Visualizer = require('webpack-visualizer-plugin');
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
 var __DEV__ = process.env.NODE_ENV !== 'production';
 
 module.exports = {
   entry: {
-    bundle: './client'
+    client: './client/index.js',
+    news: './news/client.js'
   },
-  devtool: __DEV__ ? 'inline-source-map' : null,
+  devtool: __DEV__ ? 'inline-source-map' : 'source-map',
+  mode: __DEV__ ? 'development' : 'production',
   node: {
     // Mock Node.js modules that Babel require()s but that we don't
     // particularly care about.
@@ -18,36 +22,18 @@ module.exports = {
     net: 'empty'
   },
   output: {
-    filename: __DEV__ ? 'bundle.js' : 'bundle-[hash].js',
-    chunkFilename: __DEV__ ?
-      'bundle-[name].js' :
-      'bundle-[name]-[chunkhash].js',
-    path: path.join(__dirname, '/public/js'),
-    publicPath: __DEV__ ? 'http://localhost:2999/js' : '/js'
+    filename: __DEV__ ? '[name].js' : '[name]-[hash].js',
+    chunkFilename: __DEV__ ? '[name].js' : '[name]-[chunkhash].js',
+    path: path.join(__dirname, '/public/js/')
   },
   module: {
-    loaders: [
+    rules: [
       {
         test: /\.jsx?$/,
-        include: [
-          path.join(__dirname, 'client/'),
-          path.join(__dirname, 'common/')
-        ],
-        loaders: [
-          'babel-loader'
-        ]
-      },
-      {
-        test: /\.json$/,
-        loaders: [
-          'json-loader'
-        ]
+        exclude: /node_modules/,
+        use: [__DEV__ && 'react-hot-loader', 'babel-loader'].filter(Boolean)
       }
     ]
-  },
-  externals: {
-    codemirror: 'CodeMirror',
-    'loop-protect': 'loopProtect'
   },
   plugins: [
     new webpack.DefinePlugin({
@@ -59,11 +45,19 @@ module.exports = {
     // Use browser version of visionmedia-debug
     new webpack.NormalModuleReplacementPlugin(
       /debug\/node/,
-      'debug/browser'
-    ),
-    new webpack.optimize.DedupePlugin(),
-    new webpack.optimize.OccurenceOrderPlugin(true)
-  ]
+      'debug/src/browser'
+    )
+  ],
+  optimization: {
+    minimizer: [
+      new UglifyJsPlugin({
+        test: /\.js($|\?)/i,
+        cache: true,
+        sourceMap: true,
+        parallel: true
+      })
+    ]
+  }
 };
 
 if (!__DEV__) {
@@ -77,6 +71,8 @@ if (!__DEV__) {
 } else {
   module.exports.plugins.push(
     new webpack.HotModuleReplacementPlugin(),
-    new webpack.NoErrorsPlugin()
+    new webpack.NoEmitOnErrorsPlugin(),
+    // this will output a .html file in output.path
+    new Visualizer({ filename: 'webpack-bundle-stats.html' })
   );
 }
